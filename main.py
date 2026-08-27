@@ -10,7 +10,7 @@ CLIENT_ID = os.environ.get("DHAN_CLIENT_ID")
 ACCESS_TOKEN = os.environ.get("DHAN_ACCESS_TOKEN")
 
 # Initialize Dhan Client (यहाँ Parameter Name लिखना ज़रूरी है)
-dhan = dhanhq(client_id=CLIENT_ID, access_token=ACCESS_TOKEN)
+dhan = dhanhq(CLIENT_ID, ACCESS_TOKEN)
 @app.get("/")
 def home():
     return {"status": "Dhan-Chartink Webhook Server Running"}
