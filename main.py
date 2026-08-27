@@ -4,13 +4,13 @@ from dhanhq import dhanhq
 
 app = FastAPI()
 
-# Dhan API Configuration (Environment Variables se read hoga)
-# Environment Variables से वैल्यू रीड हो रही है (यहाँ असली ID/Token लिखने की ज़रूरत नहीं है)
+# Environment Variables से credentials लें
 CLIENT_ID = os.environ.get("DHAN_CLIENT_ID")
 ACCESS_TOKEN = os.environ.get("DHAN_ACCESS_TOKEN")
 
-# Correct Initialization for DhanHQ SDK
-dhan = dhanhq(client_id=CLIENT_ID, access_token=ACCESS_TOKEN)
+# Correct Dhan Client Initialization
+dhan = dhanhq(CLIENT_ID, ACCESS_TOKEN)
+
 @app.get("/")
 def home():
     return {"status": "Dhan-Chartink Webhook Server Running"}
@@ -18,38 +18,33 @@ def home():
 @app.post("/webhook")
 async def receive_webhook(request: Request):
     try:
-        # Chartink se aane wala JSON payload read karna
+        # Chartink से आने वाला JSON payload read करें
         data = await request.json()
         
-        # Chartink multi-stock alerts comma-separated bhejta hai (e.g. "RELIANCE, SBIN")
-        stocks = data.get("stocks", "").split(",")
-        
+        # Stocks लिस्ट निकालें (e.g. "RELIANCE, SBIN")
+        stocks_raw = data.get("stocks", "")
+        if not stocks_raw:
+            return {"status": "ignored", "reason": "No stocks found"}
+            
+        stocks_list = [s.strip().upper() for s in stocks_raw.split(",") if s.strip()]
+
+        # Orders execute करने का loop
         placed_orders = []
-
-        for symbol in stocks:
-            trading_symbol = symbol.strip().upper()
-            if not trading_symbol:
-                continue
-
-            # Dhan Cash Order Parameters
-            # ProductType: CNC (Delivery - agar 2-3 din hold karna ho) ya INTRADAY
-            # Buy Order at Market Price
+        for trading_symbol in stocks_list:
             order_response = dhan.place_order(
-                security_id=trading_symbol,  # Note: Ideal cases mein Dhan Security ID map karni hoti hai
-                exchange_segment=dhan.NSE,
+                tag='',
                 transaction_type=dhan.BUY,
-                quantity=1,                   # Aap isse capital ke hisab se customize kar sakte hain
+                exchange_segment=dhan.NSE,
+                product_type=dhan.INTRA,
                 order_type=dhan.MARKET,
-                product_type=dhan.CNC,        # Short-term swing ke liye CNC / Delivery
+                validity='DAY',
+                security_id=trading_symbol,
+                quantity=1,
                 price=0
             )
+            placed_orders.append({"symbol": trading_symbol, "response": order_response})
 
-            placed_orders.append({
-                "symbol": trading_symbol,
-                "response": order_response
-            })
-
-        return {"status": "success", "orders": placed_orders}
+        return {"status": "success", "executed": placed_orders}
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
