@@ -5,12 +5,12 @@ from dhanhq import dhanhq
 app = FastAPI()
 
 # Dhan API Configuration (Environment Variables se read hoga)
-CLIENT_ID = os.environ.get("DHAN_CLIENT_ID", "YOUR_CLIENT_ID")
-ACCESS_TOKEN = os.environ.get("DHAN_ACCESS_TOKEN", "YOUR_ACCESS_TOKEN")
+# Environment Variables से वैल्यू रीड हो रही है (यहाँ असली ID/Token लिखने की ज़रूरत नहीं है)
+CLIENT_ID = os.environ.get("DHAN_CLIENT_ID")
+ACCESS_TOKEN = os.environ.get("DHAN_ACCESS_TOKEN")
 
-# Initialize Dhan Client
-dhan = dhanhq(CLIENT_ID, ACCESS_TOKEN)
-
+# Initialize Dhan Client (यहाँ Parameter Name लिखना ज़रूरी है)
+dhan = dhanhq(client_id=CLIENT_ID, access_token=ACCESS_TOKEN)
 @app.get("/")
 def home():
     return {"status": "Dhan-Chartink Webhook Server Running"}
