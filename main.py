@@ -1,19 +1,9 @@
 import os
-from fastapi import FastAPI, Request
-from typing import Dict
-import math
-
-# DhanHQ compatibility import (DhanHQ v2/v3 Context support)
-try:
-    from dhanhq import dhanhq, DhanContext
-    USE_CONTEXT = True
-except ImportError:
-    from dhanhq import import os
-from fastapi import FastAPI, Request
-from typing import Dict
 import math
 import requests
 import pandas as pd
+from fastapi import FastAPI, Request
+from typing import Dict
 
 # DhanHQ compatibility import
 try:
