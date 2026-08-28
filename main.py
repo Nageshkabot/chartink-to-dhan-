@@ -16,7 +16,7 @@ app = FastAPI()
 # ==================== CONFIGURATION & CONTROLS ====================
 # Yahan se aap Single Click / Config change karke trade limits handle kar sakte hain.
 
-MAX_ACTIVE_POSITIONS = 1      # Max allowed parallel open positions (1, 2, etc.)
+MAX_ACTIVE_POSITIONS = 2      # Max allowed parallel open positions (1, 2, etc.)
 TRADE_CAPITAL_INR = 2500.0    # Capital allocated per trade (Between 2000 to 3000 INR)
 PRODUCT_TYPE = "MTF"          # Margin Trading Facility (Dhan Product Code)
 EXCHANGE_SEGMENT = "NSE_EQ"
