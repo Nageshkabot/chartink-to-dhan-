@@ -1,5 +1,5 @@
 fastapi
 uvicorn
 dhanhq
-pydantic
 requests
+pandas
