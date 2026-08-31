@@ -39,7 +39,6 @@ except Exception as e:
     print(f"⚠️ Dhan Initialization Error: {str(e)}")
 
 
-# Cache memory for Dhan Security IDs
 SECURITY_ID_CACHE = {}
 
 def get_dhan_security_id(symbol: str) -> str:
@@ -49,10 +48,6 @@ def get_dhan_security_id(symbol: str) -> str:
         return SECURITY_ID_CACHE[symbol]
     
     try:
-        # Fetch official Dhan Scrip Master JSON
-        url = "https://images.dhan.co/api-data/api-scrip-master.csv"
-        # Search directly using API endpoint or fallback lookup
-        # Default safety check for direct numeric string pass
         if symbol.isdigit():
             return symbol
     except Exception as e:
@@ -69,8 +64,22 @@ def calculate_mtf_quantity(price: float, capital: float) -> int:
     return qty if qty > 0 else 1
 
 
+def log_render_outbound_ip():
+    """Render Server Ka Exact Outbound IP Logs Me Print Karta Hai"""
+    try:
+        ip = requests.get('https://api.ipify.org', timeout=5).text
+        print(f"🌐 [EXPERT TRACE] Your Render Server Outbound IP is: {ip}")
+        return ip
+    except Exception as e:
+        print(f"⚠️ Could not fetch Outbound IP: {e}")
+        return None
+
+
 def execute_dhan_mtf_buy(symbol: str, price: float) -> dict:
     """Executes MTF BUY order on Dhan with response validation."""
+    # Print Exact IP in logs before attempting buy
+    log_render_outbound_ip()
+    
     qty = calculate_mtf_quantity(price, TRADE_CAPITAL_INR)
     sec_id = get_dhan_security_id(symbol)
     
@@ -86,7 +95,6 @@ def execute_dhan_mtf_buy(symbol: str, price: float) -> dict:
         )
         print(f"📥 Raw Dhan Response (BUY {symbol}): {response}")
         
-        # Validate Success Response
         if isinstance(response, dict) and response.get("status") == "success":
             return {
                 "status": "SUCCESS", 
@@ -135,13 +143,15 @@ def execute_dhan_mtf_sell(symbol: str) -> dict:
 
 @app.get("/")
 def home():
+    server_ip = log_render_outbound_ip()
     return {
         "status": "online",
         "service": "Dhan-Chartink MTF Automated Webhook Engine",
         "max_active_positions": MAX_ACTIVE_POSITIONS,
         "current_open_positions": len(active_positions),
         "product_type": PRODUCT_TYPE,
-        "active_symbols": list(active_positions.keys())
+        "active_symbols": list(active_positions.keys()),
+        "render_outbound_ip": server_ip
     }
 
 @app.get("/health")
@@ -166,14 +176,13 @@ async def receive_webhook(request: Request):
         prices = [float(p.strip()) for p in str(prices_str).split(",") if p.strip() and p.strip().replace('.', '', 1).isdigit()]
         default_price = prices[0] if prices else 100.0
 
-        # --- 1. EXIT LOGIC (Alert Discontinuation Monitor) ---
+        # --- 1. EXIT LOGIC ---
         exited_positions = []
         current_active_keys = list(active_positions.keys())
         
         for symbol in current_active_keys:
             if symbol not in incoming_stocks:
                 sell_res = execute_dhan_mtf_sell(symbol)
-                # Only remove from memory if Dhan successfully accepted/processed order
                 if sell_res.get("status") == "SUCCESS":
                     exited_positions.append({"symbol": symbol, "action": "EXIT_ALERT_STOPPED", "response": sell_res})
                     del active_positions[symbol]
@@ -182,7 +191,7 @@ async def receive_webhook(request: Request):
             else:
                 active_positions[symbol]["alert_count"] += 1
 
-        # --- 2. ENTRY LOGIC (Position Capacity Check) ---
+        # --- 2. ENTRY LOGIC ---
         placed_orders = []
         
         if len(active_positions) < MAX_ACTIVE_POSITIONS:
@@ -192,7 +201,6 @@ async def receive_webhook(request: Request):
                 target_symbol = new_candidates[0]
                 buy_res = execute_dhan_mtf_buy(target_symbol, default_price)
                 
-                # CRITICAL FIX: Only add to active_positions if order execution was SUCCESSFUL!
                 if buy_res.get("status") == "SUCCESS":
                     active_positions[target_symbol] = {
                         "alert_count": 1,
